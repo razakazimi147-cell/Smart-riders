@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#123b32">
+<meta name="description" content="دفتر ثبت سفارش‌ها و شیفت‌های Smart Rider">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Smart Rider – Al Khobar</title>
+<style>
+:root{font-family:Tahoma,Arial,sans-serif;color:#17231f;background:#f3f6f4}
+*{box-sizing:border-box}body{margin:0;padding:18px;max-width:680px;margin:auto}
+header,.panel{background:white;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 3px 15px #102b2010}
+header{background:#123b32;color:white}h1{font-size:23px;margin:0 0 7px}p{margin:5px 0;color:#63716b;font-size:13px}header p{color:#d6e5df}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}
+.stat{background:#ffffff18;border-radius:12px;padding:12px}.stat small{display:block;color:#d6e5df}.stat b{font-size:25px;display:block;margin-top:5px}
+h2{font-size:17px;margin:0 0 14px}label{display:block;font-size:13px;margin:12px 0 6px}
+input,select,button{width:100%;font:inherit;border-radius:11px;padding:12px;border:1px solid #d7e0db;background:white}
+button{border:0;background:#176b52;color:white;font-weight:bold;margin-top:14px;cursor:pointer}
+button.secondary{background:#e8f1ed;color:#164d3d}button.danger{background:#fff0ed;color:#9b3425}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.record{padding:12px 0;border-bottom:1px solid #e7ece9;display:flex;justify-content:space-between;gap:8px}
+.record:last-child{border:0}.muted{color:#68766f;font-size:12px}.empty{color:#718078;text-align:center;padding:14px}
+footer{font-size:11px;color:#738078;text-align:center;padding:8px}
+</style>
+</head>
+<body>
+<header>
+<h1>🚗 Smart Rider</h1>
+<p>دفتر ثبت سفارش‌های هنگراستیشن · الخبر</p>
+<div class="stats">
+<div class="stat"><small>کل سفارش‌ها</small><b id="totalOrders">۰</b></div>
+<div class="stat"><small>سفارش در هر ساعت</small><b id="rate">۰</b></div>
+</div>
+</header>
+<section class="panel">
+<h2>ثبت شیفت</h2>
+<label for="area">منطقه</label>
+<select id="area">
+<option>العليا</option><option>الكورنيش</option><option>الثقبة</option><option>الراكة</option><option>العقربية</option><option>الاندلس</option><option>منطقه دیگر</option>
+</select>
+<div class="grid">
+<div><label for="hours">ساعت آنلاین بودن</label><input id="hours" type="number" min="0.5" max="24" step="0.5" placeholder="مثلاً ۸"></div>
+<div><label for="orders">تعداد سفارش</label><input id="orders" type="number" min="0" max="500" step="1" placeholder="مثلاً ۱۲"></div>
+</div>
+<label for="money">درآمد به ریال (اختیاری)</label>
+<input id="money" type="number" min="0" step="0.5" placeholder="مثلاً ۱۵۰">
+<button id="add">ثبت شیفت</button>
+</section>
+<section class="panel">
+<h2>گزارش شیفت‌ها</h2>
+<div id="records" class="empty">هنوز شیفتی ثبت نشده است.</div>
+<div class="grid">
+<button class="secondary" id="export">خروجی CSV</button>
+<button class="danger" id="clear">پاک کردن همه اطلاعات</button>
+</div>
+</section>
+<footer>اطلاعات روی همین گوشی و در مرورگر ذخیره می‌شود. این ابزار به سرور یا اطلاعات داخلی هنگراستیشن وصل نیست.</footer>
+<script>
+const $=id=>document.getElementById(id);
+let rows=[];
+try{rows=JSON.parse(localStorage.getItem('smartRiderRows')||'[]')}catch(e){}
+const fa=n=>Number(n).toLocaleString('fa-IR',{maximumFractionDigits:1});
+function save(){localStorage.setItem('smartRiderRows',JSON.stringify(rows));render()}
+function render(){
+ const orders=rows.reduce((s,r)=>s+r.orders,0), hours=rows.reduce((s,r)=>s+r.hours,0);
+ $('totalOrders').textContent=fa(orders);$('rate').textContent=fa(hours?orders/hours:0);
+ if(!rows.length){$('records').className='empty';$('records').textContent='هنوز شیفتی ثبت نشده است.';return}
+ $('records').className='';
+ $('records').innerHTML=rows.slice().reverse().map((r,i)=>`<div class="record"><div><b>${r.area}</b><div class="muted">${r.date} · ${fa(r.hours)} ساعت · ${fa(r.orders)} سفارش · ${fa(r.money)} ریال</div></div><b>${fa(r.hours?r.orders/r.hours:0)} / ساعت</b></div>`).join('');
+}
+$('add').onclick=()=>{
+ const area=$('area').value,hours=Number($('hours').value),orders=Number($('orders').value),money=Number($('money').value||0);
+ if(!hours||hours<.5||hours>24||$('orders').value===''||orders<0||orders>500||money<0){alert('لطفاً ساعت، تعداد سفارش و درآمد را درست وارد کن.');return}
+ rows.push({area,hours,orders,money,date:new Date().toLocaleDateString('fa-IR')});
+ $('hours').value='';$('orders').value='';$('money').value='';save();
+};
+$('clear').onclick=()=>{if(confirm('همه اطلاعات ثبت‌شده پاک شود؟')){rows=[];save()}};
+$('export').onclick=()=>{
+ if(!rows.length){alert('هنوز اطلاعاتی برای خروجی وجود ندارد.');return}
+ const lines=[['تاریخ','منطقه','ساعت','سفارش','درآمد ریال'],...rows.map(r=>[r.date,r.area,r.hours,r.orders,r.money])];
+ const csv='\uFEFF'+lines.map(a=>a.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n');
+ const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+ const a=document.createElement('a');a.href=url;a.download='smart-rider-report.csv';a.click();URL.revokeObjectURL(url);
+};
+render();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(console.error));
+}
+</script>
+</body></html>
